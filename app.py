@@ -1,26 +1,24 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import spacy
+import requests
+import os
+from dotenv import load_dotenv
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from rank_bm25 import BM25Okapi
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
-
-# Initialize OpenAI client
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Load NLP model
 nlp = spacy.load("en_core_web_lg")
 
 # Load and preprocess data
-df = pd.read_csv("bio.csv")
-df = df.drop_duplicates().reset_index(drop=True)
+df = pd.read_csv("bio.csv").drop_duplicates().reset_index(drop=True)
 
 def preprocess(text, keep_keywords=False):
     text = str(text).lower().strip()
@@ -39,7 +37,7 @@ df['keyword_questions'] = df['Question'].apply(lambda x: preprocess(x, keep_keyw
 
 # Initialize search systems
 bm25 = BM25Okapi([q.split() for q in df['keyword_questions']])
-tfidf_vectorizer = TfidfVectorizer(ngram_range=(1,3), max_features=10000)
+tfidf_vectorizer = TfidfVectorizer(ngram_range=(1, 3), max_features=10000)
 tfidf_matrix = tfidf_vectorizer.fit_transform(df['clean_questions'])
 
 class ConversationContext:
@@ -56,17 +54,14 @@ class ConversationContext:
 context = ConversationContext()
 
 def hybrid_search(query):
-    # Keyword search
     keyword_query = preprocess(query, keep_keywords=True).split()
     bm25_scores = bm25.get_scores(keyword_query)
     bm25_indices = bm25_scores.argsort()[::-1][:5]
-    
-    # Semantic search
+
     tfidf_query = tfidf_vectorizer.transform([preprocess(query)])
     tfidf_scores = cosine_similarity(tfidf_query, tfidf_matrix)[0]
     tfidf_indices = tfidf_scores.argsort()[::-1][:5]
-    
-    # Combine results
+
     combined_indices = list(set(bm25_indices.tolist() + tfidf_indices.tolist()))
     return combined_indices
 
@@ -92,8 +87,29 @@ def generate_answer(query):
             "message": "I'm still learning about this. Would you like me to ask ChatGPT?",
             "buttons": True
         }
-    
+
     return {"message": best_answer}
+
+def query_openai_gpt(message):
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {"role": "system", "content": "You are a biology expert assistant. Answer concisely in 1–2 sentences."},
+            {"role": "user", "content": message}
+        ]
+    }
+
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
+
+    if response.status_code == 200:
+        return response.json()["choices"][0]["message"]["content"]
+    else:
+        return f"⚠️ Error contacting OpenAI: {response.json().get('error', {}).get('message', 'Unknown error')}"
 
 @app.route('/')
 def home():
@@ -104,37 +120,21 @@ def ask():
     user_input = request.json['message'].strip().lower()
     context.update_context(user_input)
 
-    # Handle AI confirmation responses
+    # Handle AI confirmation buttons
     if context.pending_ai_query:
         if user_input == "__yes__":
-            try:
-                response = openai_client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "You are a biology expert assistant. Answer concisely in 1-2 sentences."},
-                        {"role": "user", "content": context.pending_ai_query}
-                    ]
-                )
-                ai_response = f"[AI] {response.choices[0].message.content}"
-                context.pending_ai_query = None
-                return jsonify({'response': ai_response})
-            
-            except Exception as e:
-                return jsonify({'response': f"Error accessing AI: {str(e)}"})
-        
+            ai_response = query_openai_gpt(context.pending_ai_query)
+            context.pending_ai_query = None
+            return jsonify({'response': f"[AI] {ai_response}"})
         elif user_input == "__no__":
             context.pending_ai_query = None
             return jsonify({'response': "Let's try another question!"})
-        
         else:
-            # If user sends regular message instead of button response
             context.pending_ai_query = None
 
-    # Normal question processing
     response = generate_answer(user_input)
-    if isinstance(response, dict) and response.get("buttons"):
+    if response.get("buttons"):
         return jsonify(response)
-    
     return jsonify({'response': response["message"]})
 
 if __name__ == '__main__':
