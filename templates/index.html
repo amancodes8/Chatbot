@@ -1,261 +1,321 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Smart Biology Assistant</title>
-<style>
-  body {
-    margin: 0;
-    font-family: 'Inter', sans-serif;
-    background: #f3f4f8;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: stretch;
-    overflow: hidden;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Biology Assistant</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-  .chat-wrapper {
-    display: flex;
-    width: 1000px;
-    max-width: 100%;
-    background: #ffffff;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #f0f2f5;
+      height: 100vh;
+      display: flex;
+    }
 
-  .chat-container {
-    width: 65%;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid #e0e0e0;
-    background: linear-gradient(to bottom, #ffffff, #f9fbff);
-  }
+    .layout {
+      display: flex;
+      flex: 1;
+      height: 100%;
+      width: 100%;
+    }
 
-  .chat-header {
-    background: linear-gradient(135deg, #00b894, #0984e3);
-    color: white;
-    padding: 20px;
-    text-align: center;
-    font-size: 1.4em;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
+    .sidebar {
+      width: 250px;
+      background: #ffffff;
+      border-right: 1px solid #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+    }
 
-  .chat-messages {
-    flex-grow: 1;
-    padding: 20px;
-    overflow-y: auto;
-  }
+    .sidebar h2 {
+      font-size: 1.2em;
+      margin-bottom: 16px;
+      color: #00b894;
+    }
 
-  .message {
-    margin-bottom: 20px;
-    max-width: 80%;
-    padding: 14px 18px;
-    border-radius: 18px;
-    font-size: 0.95em;
-    line-height: 1.5;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
 
-  .message.user {
-    background: #00b894;
-    color: white;
-    align-self: flex-end;
-    border-bottom-right-radius: 4px;
-  }
+    .sidebar li {
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      background: #f7f9fa;
+      border-radius: 8px;
+      font-size: 0.9em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
 
-  .message.bot {
-    background: #ecf0f3;
-    color: #333;
-    align-self: flex-start;
-    border-bottom-left-radius: 4px;
-  }
+    .sidebar li:hover {
+      background: #e0f7f1;
+    }
 
-  .message.bot .button-container {
-    margin-top: 12px;
-    display: flex;
-    gap: 10px;
-  }
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(to bottom, #ffffff, #f9fbff);
+    }
 
-  .button-container button {
-    padding: 8px 16px;
-    background-color: #00cec9;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
+    .chat-header {
+      background: linear-gradient(135deg, #00b894, #0984e3);
+      color: white;
+      padding: 20px;
+      font-size: 1.4em;
+      font-weight: 600;
+    }
 
-  .button-container button:hover {
-    background-color: #00bfa6;
-  }
+    .chat-messages {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
 
-  .chat-input {
-    padding: 15px 20px;
-    border-top: 1px solid #ddd;
-    background-color: #ffffff;
-  }
+    .message {
+      max-width: 80%;
+      margin-bottom: 18px;
+      padding: 14px 18px;
+      border-radius: 18px;
+      line-height: 1.5;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
 
-  #user-input {
-    width: 100%;
-    padding: 14px 16px;
-    font-size: 1em;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    outline: none;
-    transition: border-color 0.3s;
-  }
+    .user {
+      align-self: flex-end;
+      background: #00b894;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
 
-  #user-input:focus {
-    border-color: #00b894;
-  }
+    .bot {
+      align-self: flex-start;
+      background: #ecf0f3;
+      color: #333;
+      border-bottom-left-radius: 4px;
+    }
 
-  .sample-questions {
-    width: 35%;
-    background: #f9fbff;
-    padding: 25px;
-    overflow-y: auto;
-  }
+    .button-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
 
-  .sample-questions h3 {
-    margin-top: 0;
-    font-size: 1.1em;
-    color: #2d3436;
-    margin-bottom: 16px;
-  }
+    .button-container button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #00cec9;
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+    }
 
-  .sample-questions ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
+    .chat-input {
+      padding: 20px;
+      border-top: 1px solid #ddd;
+      background: #fff;
+    }
 
-  .sample-questions li {
-    background-color: #ffffff;
-    padding: 12px 15px;
-    margin-bottom: 12px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  }
+    #user-input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 1em;
+    }
 
-  .sample-questions li:hover {
-    background-color: #e8faff;
-    border-color: #00b894;
-    color: #00b894;
-  }
-</style>
+    .suggested {
+      padding: 20px;
+      border-top: 1px solid #e0e0e0;
+      background: #f9fbff;
+    }
+
+    .suggested h3 {
+      margin: 0 0 12px 0;
+      font-size: 1em;
+      color: #2d3436;
+    }
+
+    .suggested ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      list-style: none;
+      padding: 0;
+    }
+
+    .suggested li {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .suggested li:hover {
+      background: #e8faff;
+      border-color: #00b894;
+      color: #00b894;
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .chat-header {
+        font-size: 1.1em;
+      }
+
+      .chat-messages {
+        padding: 12px;
+      }
+
+      .chat-input {
+        padding: 12px;
+      }
+
+      .suggested ul {
+        flex-direction: column;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="chat-wrapper">
-  <div class="chat-container" id="chat-container">
-    <div class="chat-header">🧬 Smart Biology Assistant</div>
-    <div class="chat-messages" id="chat-messages"></div>
-    <div class="chat-input">
-      <input type="text" id="user-input" placeholder="Type your biology question here..." autocomplete="off" />
+  <div class="layout">
+    <div class="sidebar">
+      <h2>🕘 Previous Chats</h2>
+      <ul id="chat-history">
+        <!-- Dynamically populated -->
+      </ul>
+    </div>
+
+    <div class="chat-area">
+      <div class="chat-header">🧬 Smart Biology Assistant</div>
+
+      <div class="chat-messages" id="chat-messages"></div>
+
+      <div class="suggested">
+        <h3>💡 Try asking me:</h3>
+        <ul>
+          <li onclick="fillSample('What is photosynthesis?')">What is photosynthesis?</li>
+          <li onclick="fillSample('What are chromosomes?')">What are chromosomes?</li>
+          <li onclick="fillSample('What is natural selection?')">What is natural selection?</li>
+          <li onclick="fillSample('What is genetic variation?')">What is genetic variation?</li>
+          <li onclick="fillSample('What is the circulatory system?')">What is the circulatory system?</li>
+        </ul>
+      </div>
+
+      <div class="chat-input">
+        <input type="text" id="user-input" placeholder="Type your biology question..." />
+      </div>
     </div>
   </div>
-  <div class="sample-questions">
-    <h3>💡 Try asking me:</h3>
-    <ul>
-      <li onclick="fillSample('What is photosynthesis?')">What is photosynthesis?</li>
-      <li onclick="fillSample('What are chromosomes?')">What are chromosomes?</li>
-      <li onclick="fillSample('What is natural selection?')">What is natural selection?</li>
-      <li onclick="fillSample('What is genetic variation?')">What is genetic variation?</li>
-      <li onclick="fillSample('What is the circulatory system?')">What is the circulatory system?</li>
-    </ul>
-  </div>
-</div>
 
-<script>
-  const chatMessages = document.getElementById('chat-messages');
-  const userInput = document.getElementById('user-input');
+  <script>
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const chatHistory = document.getElementById('chat-history');
+    let historyCount = 0;
 
-  function appendMessage(text, sender, buttons = false) {
-    const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message', sender);
+    function appendMessage(text, sender, buttons = false) {
+      const msg = document.createElement('div');
+      msg.className = `message ${sender}`;
+      if (buttons) {
+        msg.innerHTML = `<div>${text}</div>`;
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'button-container';
 
-    if (buttons) {
-      msgDiv.innerHTML = `<div>${text}</div>`;
-      const buttonContainer = document.createElement('div');
-      buttonContainer.className = 'button-container';
+        const yesBtn = document.createElement('button');
+        yesBtn.innerText = 'Yes';
+        yesBtn.onclick = () => sendAIConfirmation('__yes__');
 
-      const yesButton = document.createElement('button');
-      yesButton.textContent = 'Yes';
-      yesButton.onclick = () => sendAIConfirmation('__yes__');
+        const noBtn = document.createElement('button');
+        noBtn.innerText = 'Skip';
+        noBtn.onclick = () => sendAIConfirmation('__no__');
 
-      const noButton = document.createElement('button');
-      noButton.textContent = 'Skip';
-      noButton.onclick = () => sendAIConfirmation('__no__');
-
-      buttonContainer.appendChild(yesButton);
-      buttonContainer.appendChild(noButton);
-      msgDiv.appendChild(buttonContainer);
-    } else {
-      msgDiv.textContent = text;
-    }
-
-    chatMessages.appendChild(msgDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
-
-  async function sendAIConfirmation(response) {
-    appendMessage(response, 'user');
-    try {
-      const apiResponse = await fetch('/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: response })
-      });
-      const data = await apiResponse.json();
-      appendMessage(data.response, 'bot');
-    } catch (error) {
-      appendMessage("⚠️ Failed to get response", 'bot');
-    }
-  }
-
-  async function sendMessage(messageText) {
-    const message = messageText || userInput.value.trim();
-    if (!message) return;
-
-    appendMessage(message, 'user');
-    userInput.value = '';
-
-    try {
-      const response = await fetch('/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
-      });
-      const data = await response.json();
-
-      if (data.buttons) {
-        appendMessage(data.message, 'bot', true);
+        btnContainer.appendChild(yesBtn);
+        btnContainer.appendChild(noBtn);
+        msg.appendChild(btnContainer);
       } else {
-        appendMessage(data.response || data.message, 'bot');
+        msg.textContent = text;
       }
-    } catch (error) {
-      appendMessage("⚠️ Sorry, I couldn't connect to the server.", 'bot');
-    }
-  }
 
-  userInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      sendMessage();
-    }
-  });
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
 
-  function fillSample(question) {
-    userInput.value = question;
-    userInput.focus();
-  }
-</script>
+      if (sender === 'user') {
+        const item = document.createElement('li');
+        item.textContent = text;
+        item.onclick = () => {
+          userInput.value = text;
+          userInput.focus();
+        };
+        chatHistory.prepend(item);
+      }
+    }
+
+    async function sendMessage(msgText) {
+      const message = msgText || userInput.value.trim();
+      if (!message) return;
+
+      appendMessage(message, 'user');
+      userInput.value = '';
+
+      try {
+        const response = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+        const data = await response.json();
+
+        if (data.buttons) {
+          appendMessage(data.message, 'bot', true);
+        } else {
+          appendMessage(data.response || data.message, 'bot');
+        }
+      } catch (err) {
+        appendMessage("⚠️ Couldn't reach the server.", 'bot');
+      }
+    }
+
+    async function sendAIConfirmation(value) {
+      appendMessage(value === '__yes__' ? "Yes" : "Skip", 'user');
+      try {
+        const res = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: value })
+        });
+        const data = await res.json();
+        appendMessage(data.response, 'bot');
+      } catch {
+        appendMessage("⚠️ Failed to fetch AI response.", 'bot');
+      }
+    }
+
+    function fillSample(question) {
+      userInput.value = question;
+      userInput.focus();
+    }
+
+    userInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
 </body>
 </html>
