@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
-import spacy
+import spacy  # For NLP processing
 import os
 from dotenv import load_dotenv
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+from rank_bm25 import BM25Okapi 
 from sklearn.metrics.pairwise import cosine_similarity
-from rank_bm25 import BM25Okapi
-import google.generativeai as genai
+import google.generativeai as genai 
 
 # Load environment variables
 load_dotenv()
@@ -17,7 +18,6 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
 
-# Load NLP model
 nlp = spacy.load("en_core_web_lg")
 
 # Load and preprocess data
