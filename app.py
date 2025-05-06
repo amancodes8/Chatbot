@@ -1,16 +1,19 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import spacy
-import requests
 import os
 from dotenv import load_dotenv
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from rank_bm25 import BM25Okapi
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Configure Gemini API
+genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
 
@@ -84,32 +87,19 @@ def generate_answer(query):
     if max_score < 0.4:
         context.pending_ai_query = query
         return {
-            "message": "I'm still learning about this. Would you like me to ask ChatGPT?",
+            "message": "I'm still learning about this. Would you like me to ask Gemini AI?",
             "buttons": True
         }
 
     return {"message": best_answer}
 
-def query_openai_gpt(message):
-    headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": "gpt-3.5-turbo",
-        "messages": [
-            {"role": "system", "content": "You are a biology expert assistant. Answer concisely in 1–2 sentences."},
-            {"role": "user", "content": message}
-        ]
-    }
-
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
-
-    if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"]
-    else:
-        return f"⚠️ Error contacting OpenAI: {response.json().get('error', {}).get('message', 'Unknown error')}"
+def query_gemini_api(message):
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")  # or "gemini-pro"
+        response = model.generate_content(f"You are a biology expert assistant. Answer concisely in 1–2 sentences.\nUser: {message}")
+        return response.text.strip()
+    except Exception as e:
+        return f"⚠️ Gemini API error: {str(e)}"
 
 @app.route('/')
 def home():
@@ -123,7 +113,7 @@ def ask():
     # Handle AI confirmation buttons
     if context.pending_ai_query:
         if user_input == "__yes__":
-            ai_response = query_openai_gpt(context.pending_ai_query)
+            ai_response = query_gemini_api(context.pending_ai_query)
             context.pending_ai_query = None
             return jsonify({'response': f"[AI] {ai_response}"})
         elif user_input == "__no__":
