@@ -1,13 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
-import spacy  # For NLP processing
+import spacy
 import os
 from dotenv import load_dotenv
 from sklearn.feature_extraction.text import TfidfVectorizer
-
-from rank_bm25 import BM25Okapi 
 from sklearn.metrics.pairwise import cosine_similarity
-import google.generativeai as genai 
+from rank_bm25 import BM25Okapi
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +17,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
 
+# Load NLP model
 nlp = spacy.load("en_core_web_lg")
 
 # Load and preprocess data
@@ -46,7 +46,6 @@ tfidf_matrix = tfidf_vectorizer.fit_transform(df['clean_questions'])
 class ConversationContext:
     def __init__(self):
         self.keyword_history = set()
-        self.pending_ai_query = None
         self.last_query = None
 
     def update_context(self, query):
@@ -68,6 +67,16 @@ def hybrid_search(query):
     combined_indices = list(set(bm25_indices.tolist() + tfidf_indices.tolist()))
     return combined_indices
 
+def query_gemini_api(message):
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(
+            f"You are a biology expert assistant. Answer concisely in 1–2 sentences.\nUser: {message}"
+        )
+        return response.text.strip()
+    except Exception as e:
+        return f"⚠️ Gemini API error: {str(e)}"
+
 def generate_answer(query):
     top_indices = hybrid_search(query)
     best_answer = None
@@ -85,21 +94,10 @@ def generate_answer(query):
             best_answer = answer
 
     if max_score < 0.4:
-        context.pending_ai_query = query
-        return {
-            "message": "I'm still learning about this. Would you like me to ask Gemini AI?",
-            "buttons": True
-        }
+        # No strong match: fallback to Gemini AI
+        return query_gemini_api(query)
 
-    return {"message": best_answer}
-
-def query_gemini_api(message):
-    try:
-        model = genai.GenerativeModel("gemini-1.5-flash")  # or "gemini-pro"
-        response = model.generate_content(f"You are a biology expert assistant. Answer concisely in 1–2 sentences.\nUser: {message}")
-        return response.text.strip()
-    except Exception as e:
-        return f"⚠️ Gemini API error: {str(e)}"
+    return best_answer
 
 @app.route('/')
 def home():
@@ -109,23 +107,8 @@ def home():
 def ask():
     user_input = request.json['message'].strip().lower()
     context.update_context(user_input)
-
-    # Handle AI confirmation buttons
-    if context.pending_ai_query:
-        if user_input == "__yes__":
-            ai_response = query_gemini_api(context.pending_ai_query)
-            context.pending_ai_query = None
-            return jsonify({'response': f"[AI] {ai_response}"})
-        elif user_input == "__no__":
-            context.pending_ai_query = None
-            return jsonify({'response': "Let's try another question!"})
-        else:
-            context.pending_ai_query = None
-
     response = generate_answer(user_input)
-    if response.get("buttons"):
-        return jsonify(response)
-    return jsonify({'response': response["message"]})
+    return jsonify({'response': response})
 
 if __name__ == '__main__':
     app.run(debug=True)
